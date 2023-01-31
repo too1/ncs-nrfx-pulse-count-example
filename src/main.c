@@ -28,11 +28,6 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 nrfx_timer_t timer_inst = NRFX_TIMER_INSTANCE(0);
 
-void nrfx_gpiote_evt_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
-{
-
-}
-
 static void pulse_count_init(uint32_t pin)
 {
 	uint32_t err;
@@ -43,15 +38,10 @@ static void pulse_count_init(uint32_t pin)
 	// Enable a GPIOTE channel in IN mode. Enable pullup when using DK buttons for test. 
 	nrfx_gpiote_in_config_t gpiote_cfg = NRFX_GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
 	gpiote_cfg.pull = NRF_GPIO_PIN_PULLUP;
-	err = nrfx_gpiote_in_init(pin, &gpiote_cfg, nrfx_gpiote_evt_handler);
+	err = nrfx_gpiote_in_init(pin, &gpiote_cfg, NULL);
 	NRFX_ASSERT(err == NRFX_SUCCESS);
 
-	nrfx_gpiote_in_event_enable(pin, true);
-
-	// Hack to disable the event handler on this GPIOTE channel, to avoid wasting CPU cycles
-	uint8_t gpiote_ch;
-	nrfx_gpiote_channel_get(pin, &gpiote_ch);
-	NRF_GPIOTE->INTENCLR = BIT(gpiote_ch);
+	nrfx_gpiote_in_event_enable(pin, false);
 
 	// Initialize the timer in counter mode
 	nrfx_timer_config_t timer_cfg = NRFX_TIMER_DEFAULT_CONFIG;

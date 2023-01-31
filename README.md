@@ -16,5 +16,4 @@ Requirements
 TODO
 ****
 - Test on a device using DPPI rather than PPI (like the nRF5340)
-- Remove register hack for disabling GPIOTE callback
 
