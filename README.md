@@ -12,8 +12,8 @@ Requirements
 - nRF Connect SDK v2.2.0
 - Tested on the following board(s);
 	- nrf52840dk_nrf52840
+   	- nrf5340dk_nrf5340
 	
 TODO
 ****
-- Test on a device using DPPI rather than PPI (like the nRF5340)
 
