@@ -25,6 +25,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
  * See the sample documentation for information on how to fix this.
  */
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_N_ALIAS_sw0, gpios);
 
 nrfx_timer_t timer_inst = NRFX_TIMER_INSTANCE(0);
 
@@ -90,7 +91,7 @@ void main(void)
 		return;
 	}
 
-	pulse_count_init(11);
+	pulse_count_init(button.pin);
 
 	while (1) {
 		ret = gpio_pin_toggle_dt(&led);
