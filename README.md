@@ -9,11 +9,9 @@ Will set up one GPIOTE channel in IN mode, and connect the event to the count ta
 Requirements
 ************
 
-- nRF Connect SDK v2.2.0
+- nRF Connect SDK v2.5.2
 - Tested on the following board(s);
+	- nrf52dk_nrf52832
 	- nrf52840dk_nrf52840
    	- nrf5340dk_nrf5340
 	
-TODO
-****
-

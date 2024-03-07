@@ -33,35 +33,57 @@ static void pulse_count_init(uint32_t pin)
 {
 	uint32_t err;
 	
+	// Initialize the GPIOTE library
 	err = nrfx_gpiote_init(NRFX_GPIOTE_DEFAULT_CONFIG_IRQ_PRIORITY);
     NRFX_ASSERT(err == NRFX_SUCCESS);
 
-	// Enable a GPIOTE channel in IN mode. Enable pullup when using DK buttons for test. 
-	nrfx_gpiote_in_config_t gpiote_cfg = NRFX_GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
-	gpiote_cfg.pull = NRF_GPIO_PIN_PULLUP;
-	err = nrfx_gpiote_in_init(pin, &gpiote_cfg, NULL);
+	// Allocate a GPIOTE channel to be used to generate input events
+	uint8_t gpiote_ch;
+	err = nrfx_gpiote_channel_alloc(&gpiote_ch);
 	NRFX_ASSERT(err == NRFX_SUCCESS);
 
-	nrfx_gpiote_in_event_enable(pin, false);
+	// Set up the pin configuration with pullup enabled, in order to use a DK button
+	nrfx_gpiote_input_config_t gpiote_cfg = {
+		.pull = NRF_GPIO_PIN_PULLUP,
+	};
+
+	// Set the trigger configuration to use the recently allocated channel, and the HITOLO trigger setting
+	nrfx_gpiote_trigger_config_t trigger_cfg = {
+		.p_in_channel = &gpiote_ch,
+		.trigger = NRFX_GPIOTE_TRIGGER_HITOLO,
+	};
+
+	// Configure the GPIOTE IN channel with the defined settings
+	err = nrfx_gpiote_input_configure(pin, &gpiote_cfg, &trigger_cfg, NULL);
+	NRFX_ASSERT(err == NRFX_SUCCESS);
+
+	// Enable triggering on the pin in order to enable event generation. Interrupt is not required
+	nrfx_gpiote_trigger_enable(pin, false);
 
 	// Initialize the timer in counter mode
-	nrfx_timer_config_t timer_cfg = NRFX_TIMER_DEFAULT_CONFIG;
-	timer_cfg.mode = NRF_TIMER_MODE_COUNTER;
-	timer_cfg.bit_width = NRF_TIMER_BIT_WIDTH_32;
+	nrfx_timer_config_t timer_cfg = {
+		.mode = NRF_TIMER_MODE_COUNTER,
+		.bit_width = NRF_TIMER_BIT_WIDTH_32,
+		.frequency = 1000000,
+	};
+
 	err = nrfx_timer_init(&timer_inst, &timer_cfg, NULL);
 	NRFX_ASSERT(err == NRFX_SUCCESS);
 
-	// Set up a PPI channel to connect the GPIOTE event to the timer COUNT task
+	// Allocate a PPI channel
 	uint8_t gppi_ch;
 	err = nrfx_gppi_channel_alloc(&gppi_ch);
 	NRFX_ASSERT(err == NRFX_SUCCESS);
 
+	// Configure the PPI channel to connect the GPIOTE event to the timer COUNT task
 	nrfx_gppi_channel_endpoints_setup(gppi_ch,
-		nrfx_gpiote_in_event_addr_get(pin),
+		nrfx_gpiote_in_event_address_get(pin),
 		nrfx_timer_task_address_get(&timer_inst, NRF_TIMER_TASK_COUNT));
 
+	// Enable the PPI channel
 	nrfx_gppi_channels_enable(BIT(gppi_ch));
 
+	// Enable the timer
 	nrfx_timer_enable(&timer_inst);
 }
 
@@ -76,19 +98,19 @@ static uint32_t pulse_count_sample(void)
 	return nrfx_timer_capture_get(&timer_inst, NRF_TIMER_CC_CHANNEL0);
 }
 
-void main(void)
+int main(void)
 {
 	int ret;
 
 	LOG_INF("Pulse count sample started");
 
 	if (!device_is_ready(led.port)) {
-		return;
+		return 0;
 	}
 
 	ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 	if (ret < 0) {
-		return;
+		return 0;
 	}
 
 	pulse_count_init(button.pin);
@@ -96,7 +118,7 @@ void main(void)
 	while (1) {
 		ret = gpio_pin_toggle_dt(&led);
 		if (ret < 0) {
-			return;
+			return 0;
 		}
 
 		// Reset the counter, go to sleep for a second, and print the result afterwards
@@ -104,4 +126,6 @@ void main(void)
 		k_msleep(SLEEP_TIME_MS);
 		LOG_INF("Pulse count: %i", pulse_count_sample());
 	}
+
+	return 0;
 }
